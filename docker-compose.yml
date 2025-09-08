@@ -1,0 +1,17 @@
+version: '3.0'
+services:
+    xyz-service:
+        image: angsuran-service:1.0.0
+        stdin_open: true
+        tty: true
+        container_name: angsuran-service
+        restart: always
+        environment:
+            TZ: "Asia/Jakarta"
+        ports:
+            - 8001:8001
+        volumes:
+            - ./files/angsuran.xlsx:/app/cmd/files/angsuran.xlsx
+            - ./log/service.log:/app/cmd/log/service.log
+            - ./config/config.yml:/app/cmd/config/config.yml
+            - /etc/hosts:/etc/hosts

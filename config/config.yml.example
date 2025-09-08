@@ -1,0 +1,34 @@
+app:
+  app_name: 'service-product-purchase'
+  app_version: '1.0.0'
+  app_environment: 'development'
+  app_base_dir: ''
+  app_time_zone: 'Asia/Jakarta'
+
+httpserver:
+  httpserver_port: '8001'
+  httpserver_use_ssl: false
+  httpserver_ssl_key: ''
+  httpserver_ssl_cert: ''
+
+httpclient:
+  httpc_max_idle_conns: 100
+  httpc_max_idle_conns_per_host: 100 
+  httpc_insecure_skip_verify: true
+  httpc_set_timeout: 30
+  httpc_use_client_ssl: false 
+
+logger:
+  log_level: 'debug'
+  log_path: '.'
+
+postgresql:
+  postgresql_driver_name: 'postgresql'
+  postgresql_max_open_conns: 100
+  postgresql_max_idle_conns: 100
+  postgresql_max_lifetime_conns: 5 
+  postgresql_lifetime_conns_unit: ''
+  postgresql_url: 'postgres://user:password@localhost:5432/dbname?sslmode=disable'
+
+cipher:
+  cipher_postgresql: 'test123'
