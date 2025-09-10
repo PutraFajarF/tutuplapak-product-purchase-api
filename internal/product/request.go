@@ -26,3 +26,7 @@ type ProductListRequest struct {
 	Category  string `json:"category"`
 	SortBy    string `json:"sortBy"`
 }
+
+type DeleteProductRequest struct {
+	ProductId string `json:"productId" validate:"required"`
+}

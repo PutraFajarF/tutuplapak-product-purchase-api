@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/entity"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product"
@@ -47,8 +48,21 @@ func (r ProductRepository) UpdateProduct(ctx context.Context, req entity.Product
 	return res, nil
 }
 
-func (r ProductRepository) DeleteProduct(ctx context.Context, authId string, productId string) (err error) {
-	return
+func (r ProductRepository) DeleteProduct(ctx context.Context, authId string, productId string) error {
+	result := r.db.WithContext(ctx).
+		Model(&entity.Product{}).
+		Where("auth_id = ? AND id = ? AND deleted_at IS NULL", authId, productId).
+		Update("deleted_at", time.Now())
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("product not found")
+	}
+
+	return nil
 }
 
 func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductListRequest) (res []product.ProdutListResponse, err error) {

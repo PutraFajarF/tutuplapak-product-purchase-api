@@ -98,7 +98,14 @@ func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdatePro
 }
 
 func (u ProductUsecase) DeleteProduct(ctx context.Context, productId string) (err error) {
-	return
+	// ambil auth id dari token
+	authId := "authid"
+
+	err = u.productRepository.DeleteProduct(ctx, authId, productId)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductListRequest) (res []product.ProdutListResponse, err error) {
