@@ -49,13 +49,12 @@ func Run(cfg *config.Config) {
 	e.HideBanner = true
 	e.Validator = validator.NewValidator()
 	e.Use(middleware.Recover(), middleware.Logger())
-	e.GET("/healthz", func(c echo.Context) error { return c.String(http.StatusOK, "ok") })
+	e.GET("/health", func(c echo.Context) error { return c.String(http.StatusOK, "ok") })
 
 	// Routers (v1)
 	api := e.Group("/api/v1")
 	purchaseHandler.RegisterPurchaseRoutes(api, purchHandler)
 
-	// v1.NewRouter(handler, l, cfg, consumerUsecase)
 	httpServer := httpserver.New(e, cfg, httpserver.Port(cfg.HTTPServer.Port))
 
 	// Waiting signal
