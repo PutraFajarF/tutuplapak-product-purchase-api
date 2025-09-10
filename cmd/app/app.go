@@ -1,18 +1,24 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/config"
-	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/httpserver"
+	file_repo "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/file/repository"
+	product_handler "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product/delivery"
+	product_repo "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product/repository"
+	product_usecase "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product/usecase"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/logger"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/postgresql"
-
-	"github.com/gorilla/mux"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func Run(cfg *config.Config) {
@@ -23,38 +29,47 @@ func Run(cfg *config.Config) {
 
 	// Postgresql
 	db := postgresql.New(cfg, l)
-	// / Untuk tutup koneksi, ambil sql.DB dari gorm
 	sqlDB, err := db.DB()
 	if err != nil {
 		log.Fatalf("couldn't get sql.DB: %v", err)
 	}
 	defer sqlDB.Close()
+	// Echo
+	e := echo.New()
+	e.Validator = NewCustomValidator()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	v1 := e.Group("/api/v1")
 
 	// Repository
-	// consumerRepository := postgresql_repository.NewConsumerMysqlRepository(l, cfg, db)
+	productRepository := product_repo.NewProductRepository(*db)
+	fileRepository := file_repo.NewRepositoryFile(*db)
 
 	// Usecase
-	// consumerUsecase := consumer.NewConsumerUsecase(l, cfg, consumerRepository)
+	productUsecase := product_usecase.NewProductUsecase(productRepository, fileRepository)
 
-	// HTTP Server
-	handler := mux.NewRouter()
-	// v1.NewRouter(handler, l, cfg, consumerUsecase)
-	httpServer := httpserver.New(handler, cfg, httpserver.Port(cfg.HTTPServer.Port))
+	// Routes
+	product_handler.RegisterProductRoutes(v1, productUsecase)
 
-	// Waiting signal
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+	// Start server in goroutine
+	go func() {
+		if err := e.Start(":" + cfg.HTTPServer.Port); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("shutting down the server: %v", err)
+		}
+	}()
 
-	select {
-	case s := <-interrupt:
-		log.Println("app - Run - signal: " + s.String())
-	case err = <-httpServer.Notify():
-		log.Println(fmt.Errorf("app - Run - httpServer.Notify: %w", err))
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := e.Shutdown(ctx); err != nil {
+		log.Fatal(err)
 	}
 
-	// Shutdown
-	err = httpServer.Shutdown()
-	if err != nil {
-		log.Println(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
-	}
 }
