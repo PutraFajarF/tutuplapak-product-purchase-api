@@ -58,6 +58,42 @@ func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreatePro
 }
 
 func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdateProductRequest) (res product.UpdateProdutResponse, err error) {
+	// get auth id from jwt token
+	authId := "authid"
+
+	updateProductReq := entity.Product{
+		ID:           req.ProductId,
+		AuthId:       authId,
+		TypeCategory: req.Category,
+		Name:         req.Name,
+		Qty:          req.Qty,
+		Price:        req.Price,
+		Sku:          req.SKU,
+		FileId:       req.FileID,
+	}
+
+	updateProduct, err := u.productRepository.UpdateProduct(ctx, updateProductReq)
+	if err != nil {
+		return res, err
+	}
+
+	fileData, err := u.fileRepository.GetFileByID(ctx, req.FileID)
+	if err != nil {
+		return res, err
+	}
+
+	res.ProductId = updateProduct.ID
+	res.Category = updateProduct.TypeCategory
+	res.Name = updateProduct.Name
+	res.Qty = updateProduct.Qty
+	res.Price = updateProduct.Price
+	res.SKU = updateProduct.Sku
+	res.FileID = updateProduct.FileId
+	res.FileUri = fileData.Uri
+	res.FileThumbnailUri = fileData.ThumbnailUri
+	res.CreatedAt = updateProduct.CreatedAt.Format(time.RFC3339)
+	res.UpdatedAt = updateProduct.UpdatedAt.Format(time.RFC3339)
+
 	return
 }
 

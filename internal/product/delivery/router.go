@@ -10,4 +10,5 @@ func RegisterProductRoutes(e *echo.Group, u product.IUsecaseProduct) {
 
 	api := e.Group("/product")
 	api.POST("", handler.CreateProduct)
+	api.PUT("/:productId", handler.UpdateProduct)
 }
