@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/entity"
@@ -42,7 +43,7 @@ func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreatePro
 		return res, err
 	}
 
-	res.ProductId = savedProduct.ID
+	res.ProductId = intToString(savedProduct.ID)
 	res.Category = savedProduct.TypeCategory
 	res.Name = savedProduct.Name
 	res.Qty = savedProduct.Qty
@@ -61,8 +62,9 @@ func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdatePro
 	// get auth id from jwt token
 	authId := "authid"
 
+	prdId, _ := stringToInt(req.ProductId)
 	updateProductReq := entity.Product{
-		ID:           req.ProductId,
+		ID:           prdId,
 		AuthId:       authId,
 		TypeCategory: req.Category,
 		Name:         req.Name,
@@ -82,7 +84,7 @@ func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdatePro
 		return res, err
 	}
 
-	res.ProductId = updateProduct.ID
+	res.ProductId = intToString(updateProduct.ID)
 	res.Category = updateProduct.TypeCategory
 	res.Name = updateProduct.Name
 	res.Qty = updateProduct.Qty
@@ -101,7 +103,8 @@ func (u ProductUsecase) DeleteProduct(ctx context.Context, productId string) (er
 	// ambil auth id dari token
 	authId := "authid"
 
-	err = u.productRepository.DeleteProduct(ctx, authId, productId)
+	prdId, _ := stringToInt(productId)
+	err = u.productRepository.DeleteProduct(ctx, authId, prdId)
 	if err != nil {
 		return err
 	}
@@ -110,4 +113,17 @@ func (u ProductUsecase) DeleteProduct(ctx context.Context, productId string) (er
 
 func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductListRequest) (res []product.ProdutListResponse, err error) {
 	return
+}
+
+func intToString(n int) string {
+	return fmt.Sprintf("%d", n)
+}
+
+func stringToInt(s string) (int, error) {
+	var n int
+	_, err := fmt.Sscanf(s, "%d", &n)
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
 }

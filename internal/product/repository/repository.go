@@ -48,7 +48,7 @@ func (r ProductRepository) UpdateProduct(ctx context.Context, req entity.Product
 	return res, nil
 }
 
-func (r ProductRepository) DeleteProduct(ctx context.Context, authId string, productId string) error {
+func (r ProductRepository) DeleteProduct(ctx context.Context, authId string, productId int) error {
 	result := r.db.WithContext(ctx).
 		Model(&entity.Product{}).
 		Where("auth_id = ? AND id = ? AND deleted_at IS NULL", authId, productId).
