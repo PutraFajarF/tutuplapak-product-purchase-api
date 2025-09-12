@@ -15,6 +15,7 @@ type (
 		POSTGRESQL `yaml:"postgresql"`
 		Log        `yaml:"logger"`
 		Cipher     `yaml:"cipher"`
+		JWT        `yaml:"jwt"`
 	}
 
 	// App -.
@@ -61,6 +62,10 @@ type (
 
 	Cipher struct {
 		CipherPostgresql string `env-required:"true" yaml:"cipher_postgresql" env:"CIPHER_POSTGRESQL"`
+	}
+
+	JWT struct {
+		Secret string `env-required:"true" yaml:"jwt_secret" env:"JWT_SECRET"`
 	}
 )
 

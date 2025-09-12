@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product"
+	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/middleware"
 	"github.com/labstack/echo/v4"
 )
 
@@ -20,10 +21,17 @@ func NewProductHandler(usecaseProduct product.IUsecaseProduct) ProductHandler {
 
 func (d ProductHandler) CreateProduct(c echo.Context) error {
 	var req product.CreateProductRequest
+
+	authId, ok := middleware.GetUserID(c)
+	if !ok {
+		return echo.NewHTTPError(401, "no user id in token")
+	}
+
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 	}
 
+	req.AuthId = authId
 	if err := c.Validate(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Validation failed"})
 	}
@@ -41,10 +49,17 @@ func (d ProductHandler) CreateProduct(c echo.Context) error {
 
 func (d ProductHandler) UpdateProduct(c echo.Context) error {
 	var req product.UpdateProductRequest
+
+	authId, ok := middleware.GetUserID(c)
+	if !ok {
+		return echo.NewHTTPError(401, "no user id in token")
+	}
+
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 	}
 
+	req.AuthId = authId
 	req.ProductId = c.Param("productId")
 	if err := c.Validate(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Validation failed"})
@@ -66,6 +81,12 @@ func (d ProductHandler) UpdateProduct(c echo.Context) error {
 
 func (h *ProductHandler) DeleteProduct(c echo.Context) error {
 	var req product.DeleteProductRequest
+
+	authId, ok := middleware.GetUserID(c)
+	if !ok {
+		return echo.NewHTTPError(401, "no user id in token")
+	}
+
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 	}
@@ -75,7 +96,7 @@ func (h *ProductHandler) DeleteProduct(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Validation failed"})
 	}
 
-	err := h.usecaseProduct.DeleteProduct(c.Request().Context(), req.ProductId)
+	err := h.usecaseProduct.DeleteProduct(c.Request().Context(), authId, req.ProductId)
 	if err != nil {
 		if err.Error() == "product not found" {
 			return c.JSON(http.StatusNotFound, map[string]string{

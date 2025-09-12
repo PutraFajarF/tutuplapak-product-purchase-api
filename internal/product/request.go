@@ -12,6 +12,7 @@ type CreateProductRequest struct {
 	Price    int    `json:"price" validate:"required,gte=100"`
 	SKU      string `json:"sku" validate:"required,max=32"`
 	FileID   string `json:"fileId" validate:"required"`
+	AuthId   string `json:"-"`
 }
 type UpdateProductRequest struct {
 	ProductId string `json:"productId" validate:"required"`
@@ -21,6 +22,7 @@ type UpdateProductRequest struct {
 	Price     int    `json:"price" validate:"required,gte=100"`
 	SKU       string `json:"sku" validate:"required,max=32"`
 	FileID    string `json:"fileId" validate:"required"`
+	AuthId    string `json:"-"`
 }
 
 type ProductListRequest struct {

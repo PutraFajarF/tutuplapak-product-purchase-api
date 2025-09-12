@@ -21,11 +21,9 @@ func NewProductUsecase(productRepository product.IRepositoryProduct, fileReposit
 }
 
 func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreateProductRequest) (res product.CreateProdutResponse, err error) {
-	// get auth id from jwt token
-	authId := "authid"
 
 	createProduct := entity.Product{
-		AuthId:       authId,
+		AuthId:       req.AuthId,
 		TypeCategory: req.Category,
 		Name:         req.Name,
 		Qty:          req.Qty,
@@ -60,13 +58,10 @@ func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreatePro
 }
 
 func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdateProductRequest) (res product.UpdateProdutResponse, err error) {
-	// get auth id from jwt token
-	authId := "authid"
-
 	prdId, _ := stringToInt(req.ProductId)
 	updateProductReq := entity.Product{
 		ID:           prdId,
-		AuthId:       authId,
+		AuthId:       req.AuthId,
 		TypeCategory: req.Category,
 		Name:         req.Name,
 		Qty:          req.Qty,
@@ -100,10 +95,7 @@ func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdatePro
 	return
 }
 
-func (u ProductUsecase) DeleteProduct(ctx context.Context, productId string) (err error) {
-	// ambil auth id dari token
-	authId := "authid"
-
+func (u ProductUsecase) DeleteProduct(ctx context.Context, authId, productId string) (err error) {
 	prdId, _ := stringToInt(productId)
 	err = u.productRepository.DeleteProduct(ctx, authId, prdId)
 	if err != nil {

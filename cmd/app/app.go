@@ -50,7 +50,7 @@ func Run(cfg *config.Config) {
 	productUsecase := product_usecase.NewProductUsecase(productRepository, fileRepository)
 
 	// Routes
-	product_handler.RegisterProductRoutes(v1, productUsecase)
+	product_handler.RegisterProductRoutes(v1, productUsecase, cfg)
 
 	// Start server in goroutine
 	go func() {

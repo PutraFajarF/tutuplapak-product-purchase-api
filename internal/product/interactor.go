@@ -10,7 +10,7 @@ type IUsecaseProduct interface {
 	CreateProduct(ctx context.Context, req CreateProductRequest) (res CreateProdutResponse, err error)
 	UpdateProduct(ctx context.Context, req UpdateProductRequest) (res UpdateProdutResponse, err error)
 	GetProducts(ctx context.Context, req ProductListRequest) (res []ProdutListResponse, err error)
-	DeleteProduct(ctx context.Context, productId string) (err error)
+	DeleteProduct(ctx context.Context, authId, productId string) (err error)
 }
 
 type IRepositoryProduct interface {
