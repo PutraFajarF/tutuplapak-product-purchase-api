@@ -34,4 +34,4 @@ cipher:
   cipher_postgresql: 'test123'
 
 jwt:
-  secret: ''
+  jwt_secret: 'secret'

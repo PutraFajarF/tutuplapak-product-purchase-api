@@ -1,8 +1,6 @@
 package delivery
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 
@@ -118,9 +116,6 @@ func (d ProductHandler) ProductList(c echo.Context) error {
 	}
 
 	req = product.NewProductListRequest(req)
-	data, _ := json.Marshal(req)
-
-	log.Println("DATA REQ", string(data))
 
 	res, err := d.usecaseProduct.GetProducts(c.Request().Context(), req)
 	if err != nil {
