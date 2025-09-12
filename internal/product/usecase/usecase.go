@@ -8,6 +8,7 @@ import (
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/entity"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/file"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product"
+	"gorm.io/gorm"
 )
 
 type ProductUsecase struct {
@@ -112,6 +113,32 @@ func (u ProductUsecase) DeleteProduct(ctx context.Context, productId string) (er
 }
 
 func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductListRequest) (res []product.ProdutListResponse, err error) {
+	res = []product.ProdutListResponse{}
+	products, err := u.productRepository.GetProducts(ctx, req)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound || len(products) == 0 {
+			return res, nil
+		}
+		return res, err
+	}
+
+	prd := product.ProdutListResponse{}
+	for _, product := range products {
+		prd.ProductId = intToString(product.ID)
+		prd.Category = product.TypeCategory
+		prd.Name = product.Name
+		prd.Qty = product.Qty
+		prd.Price = product.Price
+		prd.SKU = product.Sku
+		prd.FileID = product.File.ID
+		prd.FileUri = product.File.Uri
+		prd.FileThumbnailUri = product.File.ThumbnailUri
+		prd.CreatedAt = product.CreatedAt.Format(time.RFC3339)
+		prd.UpdatedAt = product.UpdatedAt.Format(time.RFC3339)
+
+		res = append(res, prd)
+	}
+
 	return
 }
 

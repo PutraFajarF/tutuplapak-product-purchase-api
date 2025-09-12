@@ -1,6 +1,8 @@
 package delivery
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -86,4 +88,23 @@ func (h *ProductHandler) DeleteProduct(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
+}
+
+func (d ProductHandler) ProductList(c echo.Context) error {
+	var req product.ProductListRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+	}
+
+	req = product.NewProductListRequest(req)
+	data, _ := json.Marshal(req)
+
+	log.Println("DATA REQ", string(data))
+
+	res, err := d.usecaseProduct.GetProducts(c.Request().Context(), req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get product list"})
+	}
+
+	return c.JSON(http.StatusOK, res)
 }

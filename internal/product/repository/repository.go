@@ -65,6 +65,36 @@ func (r ProductRepository) DeleteProduct(ctx context.Context, authId string, pro
 	return nil
 }
 
-func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductListRequest) (res []product.ProdutListResponse, err error) {
+func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductListRequest) (res []entity.Product, err error) {
+	query := r.db.Model(&entity.Product{}).Preload("File")
+
+	if req.ProductIdInt != 0 {
+		query = query.Where("id = ?", req.ProductIdInt)
+	}
+
+	if req.Sku != "" {
+		query = query.Where("sku = ?", req.Sku)
+	}
+
+	if req.Category != "" {
+		query = query.Where("type = ?", req.Category)
+	}
+
+	switch req.SortBy {
+	case "newest":
+		query = query.Order("created_at DESC").Order("updated_at DESC")
+	case "oldest":
+		query = query.Order("created_at ASC").Order("updated_at ASC")
+	case "cheapest":
+		query = query.Order("price ASC")
+	case "expensive":
+		query = query.Order("price DESC")
+	}
+
+	err = query.Limit(req.Limit).Offset(req.Offset).Find(&res).Error
+	if err != nil {
+		return res, err
+	}
+
 	return
 }
