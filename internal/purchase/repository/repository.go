@@ -46,11 +46,11 @@ func (r *purchaseRepository) GetPurchaseByIDWithItems(ctx context.Context, id in
 
 func (r *purchaseRepository) SetPurchasePaidWithProofsAndDecrement(ctx context.Context, id int64, proofs []entity.PurchasePaymentProof) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var p entity.Purchase
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&p, "id = ?", id).Error; err != nil {
+		var purchase entity.Purchase
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&purchase, "id = ?", id).Error; err != nil {
 			return err
 		}
-		if p.Status == "PAID" {
+		if purchase.Status == "PAID" {
 			return gorm.ErrInvalidData
 		}
 
@@ -61,8 +61,8 @@ func (r *purchaseRepository) SetPurchasePaidWithProofsAndDecrement(ctx context.C
 		if err := tx.Where("purchase_id = ?", id).Find(&items).Error; err != nil {
 			return err
 		}
-		for _, it := range items {
-			if err := tx.Exec("UPDATE products SET qty = qty - ?, updated_at = NOW() WHERE id = ?", it.BuyQty, it.ProductID).Error; err != nil {
+		for _, item := range items {
+			if err := tx.Exec("UPDATE products SET qty = qty - ?, updated_at = NOW() WHERE id = ?", item.BuyQty, item.ProductID).Error; err != nil {
 				return err
 			}
 		}

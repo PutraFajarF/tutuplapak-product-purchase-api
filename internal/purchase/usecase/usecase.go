@@ -24,149 +24,149 @@ func NewPurchaseUsecase(purchaseRepo purchase.IPurchaseRepository) purchase.IPur
 
 func (uc *purchaseUsecase) CreatePurchase(ctx context.Context, req purchase.CreatePurchaseReq) (*purchase.CreatePurchaseResp, error) {
 	// kumpulkan product ids & qty
-	buyQty := map[int64]int{}
-	order := make([]int64, 0, len(req.PurchasedItems))
-	for _, it := range req.PurchasedItems {
-		pid, err := strconv.ParseInt(it.ProductID, 10, 64)
+	quantityByProductID := make(map[int64]int)
+	inputOrderIDs := make([]int64, 0, len(req.PurchasedItems))
+	for _, purchasedItem := range req.PurchasedItems {
+		productID, err := strconv.ParseInt(purchasedItem.ProductID, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid productId: %s", it.ProductID)
+			return nil, fmt.Errorf("invalid productId: %s", purchasedItem.ProductID)
 		}
-		buyQty[pid] += it.Qty
-		order = append(order, pid)
+		quantityByProductID[productID] += purchasedItem.Qty
+		inputOrderIDs = append(inputOrderIDs, productID)
 	}
-	uniqSet := map[int64]struct{}{}
-	uniq := make([]int64, 0)
-	for _, id := range order {
-		if _, ok := uniqSet[id]; !ok {
-			uniqSet[id] = struct{}{}
-			uniq = append(uniq, id)
+	uniqueIDsSet := map[int64]struct{}{}
+	uniqueIDs := make([]int64, 0)
+	for _, productID := range inputOrderIDs {
+		if _, ok := uniqueIDsSet[productID]; !ok {
+			uniqueIDsSet[productID] = struct{}{}
+			uniqueIDs = append(uniqueIDs, productID)
 		}
 	}
 
-	products, err := uc.purchaseRepo.GetProductByIDs(ctx, uniq)
+	products, err := uc.purchaseRepo.GetProductByIDs(ctx, uniqueIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	// build snapshot items (no pointers)
-	items := make([]entity.PurchaseItem, 0, len(products))
-	var total int64
-	sellerSet := map[string]struct{}{}
+	// Build snapshot items
+	snapshotItems := make([]entity.PurchaseItem, 0, len(products))
+	var grandTotal int64
+	uniqueSellerIDs := map[string]struct{}{}
 
-	for _, p := range products {
-		bq := buyQty[p.ID]
-		if p.Qty < bq {
-			return nil, fmt.Errorf("product %d qty not enough (have %d, want %d)", p.ID, p.Qty, bq)
+	for _, product := range products {
+		requestedQty := quantityByProductID[product.ID]
+		if product.Qty < requestedQty {
+			return nil, fmt.Errorf("product %d qty not enough (have %d, want %d)", product.ID, product.Qty, requestedQty)
 		}
 
-		it := entity.PurchaseItem{
-			ProductID:        p.ID,
-			SellerID:         p.AuthID,
-			Name:             p.Name,
-			CategoryCode:     p.TypeCategory,
-			Price:            p.Price,
-			SKU:              p.Sku,
-			FileID:           sql.NullString{String: p.FileId, Valid: p.FileId != ""},
-			FileURI:          sql.NullString{String: p.File.FileUri, Valid: p.File.FileUri != ""},
-			FileThumbnailURI: sql.NullString{String: p.File.FileThumbnailUri, Valid: p.File.FileThumbnailUri != ""},
-			ProductCreatedAt: p.CreatedAt,
-			ProductUpdatedAt: p.UpdatedAt,
-			QtyBefore:        p.Qty,
-			BuyQty:           bq,
+		snapshotItem := entity.PurchaseItem{
+			ProductID:        product.ID,
+			SellerID:         product.AuthID,
+			Name:             product.Name,
+			CategoryCode:     product.TypeCategory,
+			Price:            product.Price,
+			SKU:              product.Sku,
+			FileID:           sql.NullString{String: product.FileId, Valid: product.FileId != ""},
+			FileURI:          sql.NullString{String: product.File.FileUri, Valid: product.File.FileUri != ""},
+			FileThumbnailURI: sql.NullString{String: product.File.FileThumbnailUri, Valid: product.File.FileThumbnailUri != ""},
+			ProductCreatedAt: product.CreatedAt,
+			ProductUpdatedAt: product.UpdatedAt,
+			QtyBefore:        product.Qty,
+			BuyQty:           requestedQty,
 		}
-		items = append(items, it)
-		total += int64(bq) * p.Price
-		sellerSet[p.AuthID] = struct{}{}
+		snapshotItems = append(snapshotItems, snapshotItem)
+		grandTotal += int64(requestedQty) * product.Price
+		uniqueSellerIDs[product.AuthID] = struct{}{}
 	}
 
-	purch := &entity.Purchase{
+	purchaseRecord := &entity.Purchase{
 		SenderName:          req.SenderName,
 		SenderContactType:   req.SenderContactType,
 		SenderContactDetail: req.SenderContactDetail,
-		TotalPrice:          total,
+		TotalPrice:          grandTotal,
 		Status:              "PENDING",
 	}
-	if err := uc.purchaseRepo.CreatePurchaseWithItems(ctx, purch, items); err != nil {
+	if err := uc.purchaseRepo.CreatePurchaseWithItems(ctx, purchaseRecord, snapshotItems); err != nil {
 		return nil, err
 	}
 
-	// response: convert ke bentuk non-pointer & empty string
-	respItems := make([]purchase.ProductSnapshotResp, 0, len(items))
-	for _, it := range items {
-		respItems = append(respItems, purchase.ProductSnapshotResp{
-			ProductID:        strconv.FormatInt(it.ProductID, 10),
-			Name:             it.Name,
-			Category:         it.CategoryCode,
-			Qty:              it.QtyBefore,
-			Price:            it.Price,
-			SKU:              it.SKU,
-			FileID:           helper.NullString(it.FileID),
-			FileURI:          helper.NullString(it.FileURI),
-			FileThumbnailURI: helper.NullString(it.FileThumbnailURI),
-			CreatedAt:        it.ProductCreatedAt,
-			UpdatedAt:        it.ProductUpdatedAt,
+	// Build response
+	responseItems := make([]purchase.ProductSnapshotResp, 0, len(snapshotItems))
+	for _, snapshotItem := range snapshotItems {
+		responseItems = append(responseItems, purchase.ProductSnapshotResp{
+			ProductID:        strconv.FormatInt(snapshotItem.ProductID, 10),
+			Name:             snapshotItem.Name,
+			Category:         snapshotItem.CategoryCode,
+			Qty:              snapshotItem.QtyBefore,
+			Price:            snapshotItem.Price,
+			SKU:              snapshotItem.SKU,
+			FileID:           helper.NullString(snapshotItem.FileID),
+			FileURI:          helper.NullString(snapshotItem.FileURI),
+			FileThumbnailURI: helper.NullString(snapshotItem.FileThumbnailURI),
+			CreatedAt:        snapshotItem.ProductCreatedAt,
+			UpdatedAt:        snapshotItem.ProductUpdatedAt,
 		})
 	}
 
-	// payment details per seller
-	sellerIDs := make([]string, 0, len(sellerSet))
-	for id := range sellerSet {
-		sellerIDs = append(sellerIDs, id)
+	// Payment details per seller
+	sellerIDs := make([]string, 0, len(uniqueSellerIDs))
+	for sellerID := range uniqueSellerIDs {
+		sellerIDs = append(sellerIDs, sellerID)
 	}
-	profiles, err := uc.purchaseRepo.GetProfilesByIDs(ctx, sellerIDs)
+	profilesBySeller, err := uc.purchaseRepo.GetProfilesByIDs(ctx, sellerIDs)
 	if err != nil {
 		return nil, err
 	}
 
 	totalPerSeller := map[string]int64{}
-	for _, it := range items {
-		totalPerSeller[it.SellerID] += int64(it.BuyQty) * it.Price
+	for _, snapshotItem := range snapshotItems {
+		totalPerSeller[snapshotItem.SellerID] += int64(snapshotItem.BuyQty) * snapshotItem.Price
 	}
 
 	sort.Strings(sellerIDs)
-	pay := make([]purchase.PaymentDetailResp, 0, len(sellerIDs))
-	for _, sid := range sellerIDs {
-		p := profiles[sid]
-		pay = append(pay, purchase.PaymentDetailResp{
-			BankAccountName:   helper.NullString(p.BankAccountName),
-			BankAccountHolder: helper.NullString(p.BankAccountHolder),
-			BankAccountNumber: helper.NullString(p.BankAccountNumber),
-			TotalPrice:        totalPerSeller[sid],
+	paymentDetails := make([]purchase.PaymentDetailResp, 0, len(sellerIDs))
+	for _, sellerID := range sellerIDs {
+		profile := profilesBySeller[sellerID]
+		paymentDetails = append(paymentDetails, purchase.PaymentDetailResp{
+			BankAccountName:   helper.NullString(profile.BankAccountName),
+			BankAccountHolder: helper.NullString(profile.BankAccountHolder),
+			BankAccountNumber: helper.NullString(profile.BankAccountNumber),
+			TotalPrice:        totalPerSeller[sellerID],
 		})
 	}
 
 	return &purchase.CreatePurchaseResp{
-		PurchaseID:     strconv.FormatInt(purch.ID, 10),
-		PurchasedItems: respItems,
-		TotalPrice:     total,
-		PaymentDetails: pay,
+		PurchaseID:     strconv.FormatInt(purchaseRecord.ID, 10),
+		PurchasedItems: responseItems,
+		TotalPrice:     grandTotal,
+		PaymentDetails: paymentDetails,
 	}, nil
 }
 
 func (uc *purchaseUsecase) UploadPurchaseProofs(ctx context.Context, purchaseID int64, req purchase.UploadProofReq) error {
 	// get purchase + items by value
-	p, items, err := uc.purchaseRepo.GetPurchaseByIDWithItems(ctx, purchaseID)
+	purchaseRecord, purchaseItems, err := uc.purchaseRepo.GetPurchaseByIDWithItems(ctx, purchaseID)
 	if err != nil {
 		return err
 	}
-	if p.Status == "PAID" {
+	if purchaseRecord.Status == "PAID" {
 		return errors.New("purchase already paid")
 	}
 
-	// stable sellers order
-	sellers := map[string]struct{}{}
-	ordered := []string{}
-	for _, it := range items {
-		if _, ok := sellers[it.SellerID]; !ok {
-			sellers[it.SellerID] = struct{}{}
-			ordered = append(ordered, it.SellerID)
+	// Build ordered list of unique sellers
+	uniqueSellerIDsSet := map[string]struct{}{}
+	orderedSellerIDs := []string{}
+	for _, item := range purchaseItems {
+		if _, exists := uniqueSellerIDsSet[item.SellerID]; !exists {
+			uniqueSellerIDsSet[item.SellerID] = struct{}{}
+			orderedSellerIDs = append(orderedSellerIDs, item.SellerID)
 		}
 	}
-	if len(req.FileIDs) != len(ordered) {
-		return fmt.Errorf("fileIds must equal number of sellers: %d", len(ordered))
+	if len(req.FileIDs) != len(orderedSellerIDs) {
+		return fmt.Errorf("fileIds must equal number of sellers: %d", len(orderedSellerIDs))
 	}
 
-	// validate fileIds (files.fileId)
+	// Validate files
 	exists, err := uc.purchaseRepo.ExistsAllByFileID(ctx, req.FileIDs)
 	if err != nil {
 		return err
@@ -175,16 +175,16 @@ func (uc *purchaseUsecase) UploadPurchaseProofs(ctx context.Context, purchaseID 
 		return errors.New("some fileIds do not exist")
 	}
 
-	// build proofs
-	proofs := make([]entity.PurchasePaymentProof, 0, len(ordered))
-	for i, sid := range ordered {
-		proofs = append(proofs, entity.PurchasePaymentProof{
-			PurchaseID: p.ID,
-			SellerID:   sid,
+	// Build proofs
+	paymentProofs := make([]entity.PurchasePaymentProof, 0, len(orderedSellerIDs))
+	for i, sellerID := range orderedSellerIDs {
+		paymentProofs = append(paymentProofs, entity.PurchasePaymentProof{
+			PurchaseID: purchaseRecord.ID,
+			SellerID:   sellerID,
 			FileID:     req.FileIDs[i],
 			CreatedAt:  time.Now(),
 		})
 	}
 
-	return uc.purchaseRepo.SetPurchasePaidWithProofsAndDecrement(ctx, p.ID, proofs)
+	return uc.purchaseRepo.SetPurchasePaidWithProofsAndDecrement(ctx, purchaseRecord.ID, paymentProofs)
 }
