@@ -13,7 +13,7 @@ type IPurchaseUsecase interface {
 
 type IPurchaseRepository interface {
 	CreatePurchaseWithItems(ctx context.Context, p *entity.Purchase, items []entity.PurchaseItem) error
-	GetPurchaseByIDWithItems(ctx context.Context, id int64) (*entity.Purchase, []entity.PurchaseItem, error)
+	GetPurchaseByIDWithItems(ctx context.Context, id int64) (entity.Purchase, []entity.PurchaseItem, error)
 	SetPurchasePaidWithProofsAndDecrement(ctx context.Context, id int64, proofs []entity.PurchasePaymentProof) error
 	IProductRepository
 	IUserProfileRepository
@@ -26,9 +26,9 @@ type IProductRepository interface {
 }
 
 type IUserProfileRepository interface {
-	GetProfilesByIDs(ctx context.Context, ids []string) (map[string]*entity.UserProfile, error)
+	GetProfilesByIDs(ctx context.Context, ids []string) (map[string]entity.Profile, error)
 }
 
 type IFileRepository interface {
-	ExistsAll(ctx context.Context, ids []int64) (bool, error)
+	ExistsAllByFileID(ctx context.Context, fileIDs []string) (bool, error)
 }

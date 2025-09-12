@@ -1,7 +1,7 @@
 package purchase
 
 type CreatePurchaseItemReq struct {
-	ProductID string `json:"productId" validate:"required,number"` // integer as string
+	ProductID string `json:"productId" validate:"required,number"`
 	Qty       int    `json:"qty" validate:"required,gte=2"`
 }
 
@@ -13,5 +13,5 @@ type CreatePurchaseReq struct {
 }
 
 type UploadProofReq struct {
-	FileIDs []string `json:"fileIds" validate:"required,min=1,dive,number"` // integer IDs as string
+	FileIDs []string `json:"fileIds" validate:"required,min=1,dive,printascii"`
 }

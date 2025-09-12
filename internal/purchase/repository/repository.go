@@ -32,21 +32,20 @@ func (r *purchaseRepository) CreatePurchaseWithItems(ctx context.Context, p *ent
 	})
 }
 
-func (r *purchaseRepository) GetPurchaseByIDWithItems(ctx context.Context, id int64) (*entity.Purchase, []entity.PurchaseItem, error) {
+func (r *purchaseRepository) GetPurchaseByIDWithItems(ctx context.Context, id int64) (entity.Purchase, []entity.PurchaseItem, error) {
 	var p entity.Purchase
 	if err := r.db.WithContext(ctx).First(&p, "id = ?", id).Error; err != nil {
-		return nil, nil, err
+		return entity.Purchase{}, nil, err
 	}
 	var items []entity.PurchaseItem
 	if err := r.db.WithContext(ctx).Where("purchase_id = ?", id).Find(&items).Error; err != nil {
-		return nil, nil, err
+		return entity.Purchase{}, nil, err
 	}
-	return &p, items, nil
+	return p, items, nil
 }
 
 func (r *purchaseRepository) SetPurchasePaidWithProofsAndDecrement(ctx context.Context, id int64, proofs []entity.PurchasePaymentProof) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// lock purchase row
 		var p entity.Purchase
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&p, "id = ?", id).Error; err != nil {
 			return err
@@ -55,12 +54,9 @@ func (r *purchaseRepository) SetPurchasePaidWithProofsAndDecrement(ctx context.C
 			return gorm.ErrInvalidData
 		}
 
-		// insert proofs
 		if err := tx.Create(&proofs).Error; err != nil {
 			return err
 		}
-
-		// decrement qty per product
 		var items []entity.PurchaseItem
 		if err := tx.Where("purchase_id = ?", id).Find(&items).Error; err != nil {
 			return err
@@ -70,8 +66,6 @@ func (r *purchaseRepository) SetPurchasePaidWithProofsAndDecrement(ctx context.C
 				return err
 			}
 		}
-
-		// set paid
 		if err := tx.Exec("UPDATE purchases SET status = 'PAID', updated_at = NOW() WHERE id = ?", id).Error; err != nil {
 			return err
 		}

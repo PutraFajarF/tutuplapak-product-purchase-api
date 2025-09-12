@@ -26,13 +26,14 @@ func (h *PurchaseDelivery) Create(c echo.Context) error {
 	}
 
 	// conditional validation for senderContactDetail
-	if req.SenderContactType == "phone" {
+	switch req.SenderContactType {
+	case "phone":
 		if err := c.Validate(&struct {
 			Phone string `json:"senderContactDetail" validate:"e164"`
 		}{Phone: req.SenderContactDetail}); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]any{"message": err.Error()})
 		}
-	} else if req.SenderContactType == "email" {
+	case "email":
 		if err := c.Validate(&struct {
 			Email string `json:"senderContactDetail" validate:"email"`
 		}{Email: req.SenderContactDetail}); err != nil {

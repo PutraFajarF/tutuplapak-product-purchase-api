@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"database/sql"
 	"fmt"
 	"strconv"
 )
@@ -15,4 +16,11 @@ func ParseIDsNumeric(strIDs []string) ([]int64, error) {
 		out = append(out, id)
 	}
 	return out, nil
+}
+
+func NullString(v sql.NullString) string {
+	if v.Valid {
+		return v.String
+	}
+	return ""
 }
