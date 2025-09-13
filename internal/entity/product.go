@@ -15,6 +15,10 @@ type Product struct {
 	Price        int    `json:"price" gorm:"column:price;not null"`
 	Sku          string `json:"sku" gorm:"column:sku;not null"`
 	FileId       string `json:"file_id" gorm:"column:file_id;not null"`
+	AuthID       string `gorm:"column:auth_id;not null;uniqueIndex:unique_auth_sku,priority:1;constraint:OnDelete:CASCADE;"`
+	Sku          string `gorm:"column:sku;not null;size:32;uniqueIndex:unique_auth_sku,priority:2"`
+	TypeCategory string `gorm:"column:type;not null;size:32;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	FileId       string `gorm:"column:file_id;not null;size:255;constraint:OnDelete:CASCADE;"`
 
 	File File `json:"file" gorm:"foreignKey:id;references:FileId"`
 
