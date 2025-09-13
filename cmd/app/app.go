@@ -1,22 +1,25 @@
 package app
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/config"
 	file_repo "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/file/repository"
 	product_handler "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product/delivery"
 	product_repo "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product/repository"
 	product_usecase "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product/usecase"
+	purchaseHandler "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/purchase/delivery"
+	purchaseRepo "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/purchase/repository"
+	purchaseUsecase "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/purchase/usecase"
+	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/httpserver"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/logger"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/postgresql"
+	validator "github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -34,42 +37,47 @@ func Run(cfg *config.Config) {
 		log.Fatalf("couldn't get sql.DB: %v", err)
 	}
 	defer sqlDB.Close()
-	// Echo
-	e := echo.New()
-	e.Validator = NewCustomValidator()
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
 
-	v1 := e.Group("/api/v1")
-
-	// Repository
+	// Repositories
+	purchRepo := purchaseRepo.NewPurchaseRepository(db)
 	productRepository := product_repo.NewProductRepository(*db)
 	fileRepository := file_repo.NewRepositoryFile(*db)
 
-	// Usecase
+	// Usecases
+	purchUc := purchaseUsecase.NewPurchaseUsecase(purchRepo)
 	productUsecase := product_usecase.NewProductUsecase(productRepository, fileRepository)
 
-	// Routes
-	product_handler.RegisterProductRoutes(v1, productUsecase, cfg)
+	// Delivery
+	purchHandler := purchaseHandler.NewPurchaseDelivery(purchUc)
+	productHandler := product_handler.NewProductHandler(productUsecase)
 
-	// Start server in goroutine
-	go func() {
-		if err := e.Start(":" + cfg.HTTPServer.Port); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("shutting down the server: %v", err)
-		}
-	}()
+	// Echo HTTP Server
+	e := echo.New()
+	e.HideBanner = true
+	e.Validator = validator.NewValidator()
+	e.Use(middleware.Recover(), middleware.Logger())
+	e.GET("/health", func(c echo.Context) error { return c.String(http.StatusOK, "ok") })
 
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutting down server...")
+	// Routers (v1)
+	api := e.Group("/api/v1")
+	purchaseHandler.RegisterPurchaseRoutes(api, purchHandler)
+	product_handler.RegisterProductRoutes(api, productHandler, cfg)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	httpServer := httpserver.New(e, cfg, httpserver.Port(cfg.HTTPServer.Port))
 
-	if err := e.Shutdown(ctx); err != nil {
-		log.Fatal(err)
+	// Waiting signal
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+	select {
+	case s := <-interrupt:
+		log.Println("app - Run - signal: " + s.String())
+	case err = <-httpServer.Notify():
+		log.Println(fmt.Errorf("app - Run - httpServer.Notify: %w", err))
+	}
+	// Shutdown
+	err = httpServer.Shutdown()
+	if err != nil {
+		log.Println(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
 	}
 
 }

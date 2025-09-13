@@ -27,7 +27,7 @@ func (r ProductRepository) CreateProduct(ctx context.Context, req entity.Product
 }
 
 func (r ProductRepository) UpdateProduct(ctx context.Context, req entity.Product) (entity.Product, error) {
-	result := r.db.WithContext(ctx).Model(&entity.Product{}).Where("auth_id = ? AND id = ?", req.AuthId, req.ID).Updates(&req)
+	result := r.db.WithContext(ctx).Model(&entity.Product{}).Where("auth_id = ? AND id = ?", req.AuthID, req.ID).Updates(&req)
 	if result.Error != nil {
 		return entity.Product{}, result.Error
 	}
@@ -37,7 +37,7 @@ func (r ProductRepository) UpdateProduct(ctx context.Context, req entity.Product
 
 	var res entity.Product
 	if err := r.db.WithContext(ctx).
-		Where("id = ? AND auth_id = ?", req.ID, req.AuthId).
+		Where("id = ? AND auth_id = ?", req.ID, req.AuthID).
 		First(&res).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return entity.Product{}, fmt.Errorf("product not found")

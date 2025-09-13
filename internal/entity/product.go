@@ -8,7 +8,7 @@ import (
 
 type Product struct {
 	ID           int    `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	AuthId       string `json:"auth_id" gorm:"column:auth_id;not null"`
+	AuthID       string `json:"auth_id" gorm:"column:auth_id;not null"`
 	TypeCategory string `json:"type" gorm:"column:type;not null"`
 	Name         string `json:"name" gorm:"column:name;not null"`
 	Qty          int    `json:"qty" gorm:"column:qty;not null"`

@@ -3,9 +3,13 @@ package entity
 import "time"
 
 type File struct {
-	ID           string    `gorm:"primaryKey;column:id" json:"id"`
-	Uri          string    `gorm:"column:uri" json:"uri"`
-	ThumbnailUri string    `gorm:"column:thumbnail_uri" json:"thumbnailUri"`
-	CreatedAt    time.Time `gorm:"column:created_at" json:"createdAt"`
-	UpdatedAt    time.Time `gorm:"column:updated_at" json:"updatedAt"`
+	ID               string    `gorm:"column:id;primaryKey"`
+	FileID           string    `gorm:"column:fileId;uniqueIndex;not null"`
+	FileUri          string    `gorm:"column:fileUri;not null"`
+	FileThumbnailUri string    `gorm:"column:fileThumbnailUri;not null"`
+	CreatedAt        time.Time `gorm:"column:created_at"`
+}
+
+func (File) TableName() string {
+	return "files"
 }

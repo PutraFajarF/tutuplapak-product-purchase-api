@@ -23,7 +23,7 @@ func NewProductUsecase(productRepository product.IRepositoryProduct, fileReposit
 func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreateProductRequest) (res product.CreateProdutResponse, err error) {
 
 	createProduct := entity.Product{
-		AuthId:       req.AuthId,
+		AuthID:       req.AuthId,
 		TypeCategory: req.Category,
 		Name:         req.Name,
 		Qty:          req.Qty,
@@ -49,8 +49,8 @@ func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreatePro
 	res.Price = savedProduct.Price
 	res.SKU = savedProduct.Sku
 	res.FileID = req.FileID
-	res.FileUri = fileData.Uri
-	res.FileThumbnailUri = fileData.ThumbnailUri
+	res.FileUri = fileData.FileUri
+	res.FileThumbnailUri = fileData.FileThumbnailUri
 	res.CreatedAt = savedProduct.CreatedAt.Format(time.RFC3339)
 	res.UpdatedAt = savedProduct.UpdatedAt.Format(time.RFC3339)
 
@@ -61,7 +61,7 @@ func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdatePro
 	prdId, _ := stringToInt(req.ProductId)
 	updateProductReq := entity.Product{
 		ID:           prdId,
-		AuthId:       req.AuthId,
+		AuthID:       req.AuthId,
 		TypeCategory: req.Category,
 		Name:         req.Name,
 		Qty:          req.Qty,
@@ -87,8 +87,8 @@ func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdatePro
 	res.Price = updateProduct.Price
 	res.SKU = updateProduct.Sku
 	res.FileID = updateProduct.FileId
-	res.FileUri = fileData.Uri
-	res.FileThumbnailUri = fileData.ThumbnailUri
+	res.FileUri = fileData.FileUri
+	res.FileThumbnailUri = fileData.FileThumbnailUri
 	res.CreatedAt = updateProduct.CreatedAt.Format(time.RFC3339)
 	res.UpdatedAt = updateProduct.UpdatedAt.Format(time.RFC3339)
 
@@ -123,8 +123,8 @@ func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductList
 		prd.Price = product.Price
 		prd.SKU = product.Sku
 		prd.FileID = product.File.ID
-		prd.FileUri = product.File.Uri
-		prd.FileThumbnailUri = product.File.ThumbnailUri
+		prd.FileUri = product.File.FileUri
+		prd.FileThumbnailUri = product.File.FileThumbnailUri
 		prd.CreatedAt = product.CreatedAt.Format(time.RFC3339)
 		prd.UpdatedAt = product.UpdatedAt.Format(time.RFC3339)
 
