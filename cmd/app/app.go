@@ -3,16 +3,21 @@ package app
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/config"
+	purchaseHandler "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/purchase/delivery"
+	purchaseRepo "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/purchase/repository"
+	purchaseUsecase "github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/purchase/usecase"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/httpserver"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/logger"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/postgresql"
-
-	"github.com/gorilla/mux"
+	validator "github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/validator"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func Run(cfg *config.Config) {
@@ -30,16 +35,27 @@ func Run(cfg *config.Config) {
 	}
 	defer sqlDB.Close()
 
-	// Repository
-	// consumerRepository := postgresql_repository.NewConsumerMysqlRepository(l, cfg, db)
+	// Repositories
+	purchRepo := purchaseRepo.NewPurchaseRepository(db)
 
-	// Usecase
-	// consumerUsecase := consumer.NewConsumerUsecase(l, cfg, consumerRepository)
+	// Usecases
+	purchUc := purchaseUsecase.NewPurchaseUsecase(purchRepo)
 
-	// HTTP Server
-	handler := mux.NewRouter()
-	// v1.NewRouter(handler, l, cfg, consumerUsecase)
-	httpServer := httpserver.New(handler, cfg, httpserver.Port(cfg.HTTPServer.Port))
+	// Delivery
+	purchHandler := purchaseHandler.NewPurchaseDelivery(purchUc)
+
+	// Echo HTTP Server
+	e := echo.New()
+	e.HideBanner = true
+	e.Validator = validator.NewValidator()
+	e.Use(middleware.Recover(), middleware.Logger())
+	e.GET("/health", func(c echo.Context) error { return c.String(http.StatusOK, "ok") })
+
+	// Routers (v1)
+	api := e.Group("/api/v1")
+	purchaseHandler.RegisterPurchaseRoutes(api, purchHandler)
+
+	httpServer := httpserver.New(e, cfg, httpserver.Port(cfg.HTTPServer.Port))
 
 	// Waiting signal
 	interrupt := make(chan os.Signal, 1)
