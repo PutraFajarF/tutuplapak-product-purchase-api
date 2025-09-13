@@ -16,7 +16,7 @@ type Product struct {
 	Sku          string `json:"sku" gorm:"column:sku;not null"`
 	FileId       string `json:"file_id" gorm:"column:file_id;not null"`
 
-	File File `json:"file" gorm:"foreignKey:ID;references:FileId"`
+	File File `json:"file" gorm:"foreignKey:id;references:FileId"`
 
 	CreatedAt time.Time      `json:"created_at" gorm:"column:created_at;not null"`
 	UpdatedAt time.Time      `json:"updated_at" gorm:"column:updated_at;not null"`
