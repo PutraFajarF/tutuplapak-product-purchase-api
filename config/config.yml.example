@@ -32,3 +32,6 @@ postgresql:
 
 cipher:
   cipher_postgresql: 'test123'
+
+jwt:
+  jwt_secret: 'secret'

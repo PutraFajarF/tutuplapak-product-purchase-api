@@ -7,21 +7,18 @@ import (
 )
 
 type Product struct {
-	ID           int64          `gorm:"column:id;primaryKey;autoIncrement"`
-	AuthID       string         `gorm:"column:auth_id;not null"`
-	TypeCategory string         `gorm:"column:type;not null"`
-	Name         string         `gorm:"column:name;not null"`
-	Qty          int            `gorm:"column:qty;not null"`
-	Price        int64          `gorm:"column:price;not null"`
-	Sku          string         `gorm:"column:sku;not null"`
-	FileId       string         `gorm:"column:file_id;not null"` // references files.fileId (string)
-	CreatedAt    time.Time      `gorm:"column:created_at"`
-	UpdatedAt    time.Time      `gorm:"column:updated_at"`
-	DeletedAt    gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at"`
+	ID           int    `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	AuthID       string `json:"auth_id" gorm:"column:auth_id;not null"`
+	TypeCategory string `json:"type" gorm:"column:type;not null"`
+	Name         string `json:"name" gorm:"column:name;not null"`
+	Qty          int    `json:"qty" gorm:"column:qty;not null"`
+	Price        int    `json:"price" gorm:"column:price;not null"`
+	Sku          string `json:"sku" gorm:"column:sku;not null"`
+	FileId       string `json:"file_id" gorm:"column:file_id;not null"`
 
-	File File `gorm:"foreignKey:FileId;references:FileID"`
-}
+	File File `json:"file" gorm:"foreignKey:ID;references:FileId"`
 
-func (Product) TableName() string {
-	return "products"
+	CreatedAt time.Time      `json:"created_at" gorm:"column:created_at;not null"`
+	UpdatedAt time.Time      `json:"updated_at" gorm:"column:updated_at;not null"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at"`
 }

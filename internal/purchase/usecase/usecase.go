@@ -54,17 +54,17 @@ func (uc *purchaseUsecase) CreatePurchase(ctx context.Context, req purchase.Crea
 	uniqueSellerIDs := map[string]struct{}{}
 
 	for _, product := range products {
-		requestedQty := quantityByProductID[product.ID]
+		requestedQty := quantityByProductID[int64(product.ID)]
 		if product.Qty < requestedQty {
 			return nil, fmt.Errorf("product %d qty not enough (have %d, want %d)", product.ID, product.Qty, requestedQty)
 		}
 
 		snapshotItem := entity.PurchaseItem{
-			ProductID:        product.ID,
+			ProductID:        int64(product.ID),
 			SellerID:         product.AuthID,
 			Name:             product.Name,
 			CategoryCode:     product.TypeCategory,
-			Price:            product.Price,
+			Price:            int64(product.ID),
 			SKU:              product.Sku,
 			FileID:           sql.NullString{String: product.FileId, Valid: product.FileId != ""},
 			FileURI:          sql.NullString{String: product.File.FileUri, Valid: product.File.FileUri != ""},
@@ -75,7 +75,7 @@ func (uc *purchaseUsecase) CreatePurchase(ctx context.Context, req purchase.Crea
 			BuyQty:           requestedQty,
 		}
 		snapshotItems = append(snapshotItems, snapshotItem)
-		grandTotal += int64(requestedQty) * product.Price
+		grandTotal += int64(requestedQty) * int64(product.Price)
 		uniqueSellerIDs[product.AuthID] = struct{}{}
 	}
 

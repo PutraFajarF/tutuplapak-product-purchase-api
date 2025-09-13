@@ -35,5 +35,24 @@ func New(cfg *config.Config, l *logger.Logger) *gorm.DB {
 	sqlDB.SetMaxOpenConns(cfg.POSTGRESQL.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Duration(cfg.POSTGRESQL.MaxLifetimeConns) * time.Second)
 
+	seedCategories(db)
+
 	return db
+}
+
+func seedCategories(db *gorm.DB) {
+	query := `
+        INSERT INTO categories (type) VALUES
+            ('Food'),
+            ('Beverage'),
+            ('Clothes'),
+            ('Furniture'),
+            ('Tools')
+        ON CONFLICT (type) DO NOTHING;
+    `
+	if err := db.Exec(query).Error; err != nil {
+		log.Printf("failed to seed categories: %v", err)
+	}
+
+	log.Println("Categories seeded successfully (if not already present).")
 }
