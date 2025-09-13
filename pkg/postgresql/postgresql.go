@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/config"
+	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/entity"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/logger"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -34,6 +35,14 @@ func New(cfg *config.Config, l *logger.Logger) *gorm.DB {
 	sqlDB.SetMaxIdleConns(cfg.POSTGRESQL.MaxIdleConns)
 	sqlDB.SetMaxOpenConns(cfg.POSTGRESQL.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Duration(cfg.POSTGRESQL.MaxLifetimeConns) * time.Second)
+
+	// AutoMigrate
+	err = db.AutoMigrate(&entity.Category{}, &entity.Product{}, &entity.Purchase{}, &entity.PurchaseItem{}, &entity.PurchasePaymentProof{})
+	if err != nil {
+		log.Fatal("migration failed: ", err)
+	}
+
+	log.Println("Migration success 🚀")
 
 	seedCategories(db)
 

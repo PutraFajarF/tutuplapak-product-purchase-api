@@ -4,8 +4,6 @@
 -- Drop tables in correct order (because of FK dependencies)
 DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
-DROP TABLE IF EXISTS authentications CASCADE;
-DROP TABLE IF EXISTS files CASCADE;
 
 -- Create authentications
 CREATE TABLE IF NOT EXISTS authentications (
@@ -48,12 +46,4 @@ INSERT INTO categories (type) VALUES
   ('Clothes'),
   ('Furniture'),
   ('Tools');
-
-CREATE TABLE IF NOT EXISTS files (
-  id VARCHAR PRIMARY KEY,
-  uri VARCHAR(255) NOT NULL,
-  thumbnail_uri VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
 ```
