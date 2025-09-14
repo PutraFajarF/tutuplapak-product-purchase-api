@@ -26,9 +26,16 @@ import (
 
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/cmd/app"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/config"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Printf("Warning: .env file not found or error loading: %s", err)
+	}
+
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatalf("Config error: %s", err)

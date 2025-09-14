@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/config"
@@ -23,6 +24,7 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/sirupsen/logrus"
 
 	_ "github.com/PutraFajarF/tutuplapak-product-purchase-api/docs"
 )
@@ -32,6 +34,20 @@ func Run(cfg *config.Config) {
 
 	var err error
 	l := logger.New(cfg)
+
+	// Set logrus level
+	switch strings.ToLower(cfg.Log.Level) {
+	case "debug":
+		logrus.SetLevel(logrus.DebugLevel)
+	case "info":
+		logrus.SetLevel(logrus.InfoLevel)
+	case "warn", "warning":
+		logrus.SetLevel(logrus.WarnLevel)
+	case "error":
+		logrus.SetLevel(logrus.ErrorLevel)
+	default:
+		logrus.SetLevel(logrus.InfoLevel)
+	}
 
 	// Postgresql
 	db := postgresql.New(cfg, l)

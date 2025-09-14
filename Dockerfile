@@ -1,22 +1,18 @@
-FROM golang:1.19.5-alpine as builder
+FROM golang:1.23-alpine AS builder
 
-RUN \
-    apk add --no-cache bash git openssh && \
-    apk --no-cache add curl && \
-    apk --no-cache add vim && \
-    apk --no-cache add procps-dev && \
-    apk --no-cache add busybox-extras
+RUN apk add --no-cache --update bash git openssh curl vim busybox-extras
 
-ADD ./ /app
-RUN cd /app
-WORKDIR /app/cmd
+WORKDIR /app
+COPY . /app
 
-RUN go build -o main .
+RUN go mod tidy
+RUN go build -o cmd/main ./cmd
 
 # Run stage
-FROM alpine:3.13
+FROM alpine:3.20
 WORKDIR /app/cmd
 COPY --from=builder /app/cmd/main .
 
-RUN apk add --no-cache tzdata
-CMD ["/app/cmd/main"]
+RUN apk add --no-cache --update tzdata
+USER nobody
+CMD ["./main"]

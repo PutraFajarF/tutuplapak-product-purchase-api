@@ -8,6 +8,7 @@ import (
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/entity"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/file"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -77,6 +78,11 @@ func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdatePro
 
 	fileData, err := u.fileRepository.GetFileByID(ctx, req.FileID)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"file_id": req.FileID,
+			"auth_id": req.AuthId,
+			"error":   err.Error(),
+		}).Error("Failed to get file data after creating product")
 		return res, err
 	}
 

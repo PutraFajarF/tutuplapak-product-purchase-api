@@ -1,13 +1,26 @@
 version: '3.0'
 services:
-    xyz-service:
-        image: angsuran-service:1.0.0
+    product-service:
+        build: .
         stdin_open: true
         tty: true
-        container_name: angsuran-service
+        container_name: product-service
         restart: always
         environment:
             TZ: "Asia/Jakarta"
+            # Application Configuration
+            APP_NAME: "service-product-purchase"
+            APP_VERSION: "1.0.0"
+            ENVIRONMENT: "development"
+            # HTTP Server
+            HTTP_PORT: "8001"
+            # Database
+            POSTGRESQL_URL: "postgresql://tutuplapak_user:tutuplapak_password@host.docker.internal:5432/tutuplapak_db?sslmode=disable"
+            CIPHER_POSTGRESQL: "tutuplapak_password"
+            # Logging
+            LOG_LEVEL: "debug"
+            # JWT Configuration
+            JWT_SECRET: "9bcb93b71741025acbaf7341dc6cf6ecf2ee5e87324811601ea77217dbd165c9"
         ports:
             - 8001:8001
         volumes:
