@@ -8,6 +8,7 @@ import (
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/entity"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/file"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/product"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -21,6 +22,16 @@ func NewProductUsecase(productRepository product.IRepositoryProduct, fileReposit
 }
 
 func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreateProductRequest) (res product.CreateProdutResponse, err error) {
+	// First verify the file exists before creating the product
+	fileData, err := u.fileRepository.GetFileByID(ctx, req.FileID)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"file_id": req.FileID,
+			"auth_id": req.AuthId,
+			"error":   err.Error(),
+		}).Error("Failed to get file data before creating product")
+		return res, fmt.Errorf("invalid file ID: %w", err)
+	}
 
 	createProduct := entity.Product{
 		AuthID:       req.AuthId,
@@ -33,11 +44,6 @@ func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreatePro
 	}
 
 	savedProduct, err := u.productRepository.CreateProduct(ctx, createProduct)
-	if err != nil {
-		return res, err
-	}
-
-	fileData, err := u.fileRepository.GetFileByID(ctx, req.FileID)
 	if err != nil {
 		return res, err
 	}
@@ -77,6 +83,11 @@ func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdatePro
 
 	fileData, err := u.fileRepository.GetFileByID(ctx, req.FileID)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"file_id": req.FileID,
+			"auth_id": req.AuthId,
+			"error":   err.Error(),
+		}).Error("Failed to get file data after creating product")
 		return res, err
 	}
 

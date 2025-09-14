@@ -16,7 +16,7 @@ func NewRepositoryFile(db gorm.DB) RepositoryFile {
 }
 
 func (r RepositoryFile) GetFileByID(ctx context.Context, id string) (res entity.File, err error) {
-	err = r.db.WithContext(ctx).First(&res, "id = ?", id).Error
+	err = r.db.WithContext(ctx).First(&res, "\"fileId\" = ?", id).Error
 	if err != nil {
 		return entity.File{}, err
 	}
