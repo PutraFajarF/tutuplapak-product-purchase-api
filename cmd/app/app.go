@@ -20,8 +20,11 @@ import (
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/logger"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/postgresql"
 	validator "github.com/PutraFajarF/tutuplapak-product-purchase-api/pkg/validator"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
+	_ "github.com/PutraFajarF/tutuplapak-product-purchase-api/docs"
 )
 
 func Run(cfg *config.Config) {
@@ -57,6 +60,9 @@ func Run(cfg *config.Config) {
 	e.Validator = validator.NewValidator()
 	e.Use(middleware.Recover(), middleware.Logger())
 	e.GET("/health", func(c echo.Context) error { return c.String(http.StatusOK, "ok") })
+
+	// Swagger
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	// Routers (v1)
 	api := e.Group("/api/v1")

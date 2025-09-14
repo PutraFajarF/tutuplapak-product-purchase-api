@@ -19,6 +19,19 @@ func NewPurchaseDelivery(uc purchase.IPurchaseUsecase) *PurchaseDelivery {
 	return &PurchaseDelivery{uc: uc}
 }
 
+// Create godoc
+//
+//	@Summary		Create a purchase
+//	@Description	Create a new purchase with items and sender details
+//	@Tags			purchases
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		purchase.CreatePurchaseReq	true	"Purchase creation request"
+//	@Success		201		{object}	purchase.CreatePurchaseResp
+//	@Failure		400		{object}	map[string]any
+//	@Failure		404		{object}	map[string]any
+//	@Failure		500		{object}	map[string]any
+//	@Router			/api/v1/purchase [post]
 func (h *PurchaseDelivery) Create(c echo.Context) error {
 	var req purchase.CreatePurchaseReq
 	if err := c.Bind(&req); err != nil {
@@ -60,6 +73,20 @@ func (h *PurchaseDelivery) Create(c echo.Context) error {
 	return c.JSON(http.StatusCreated, resp)
 }
 
+// UploadProof godoc
+//
+//	@Summary		Upload payment proof for a purchase
+//	@Description	Upload proof of payment files for an existing purchase
+//	@Tags			purchases
+//	@Accept			json
+//	@Produce		json
+//	@Param			purchaseId	path		string					true	"Purchase ID"
+//	@Param			request		body		purchase.UploadProofReq	true	"Upload proof request"
+//	@Success		201
+//	@Failure		400	{object}	map[string]any
+//	@Failure		404	{object}	map[string]any
+//	@Failure		500	{object}	map[string]any
+//	@Router			/api/v1/purchase/{purchaseId} [post]
 func (h *PurchaseDelivery) UploadProof(c echo.Context) error {
 	sid := c.Param("purchaseId")
 	id, err := strconv.ParseInt(sid, 10, 64)

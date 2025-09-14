@@ -1,6 +1,6 @@
 module github.com/PutraFajarF/tutuplapak-product-purchase-api
 
-go 1.24
+go 1.23
 
 require (
 	github.com/go-playground/validator/v10 v10.27.0
@@ -8,6 +8,8 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/sirupsen/logrus v1.9.3
+	github.com/swaggo/echo-swagger v1.4.1
+	github.com/swaggo/swag v1.16.3
 	gorm.io/driver/postgres v1.3.10
 	gorm.io/gorm v1.23.8
 )
