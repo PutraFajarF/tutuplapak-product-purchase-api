@@ -21,6 +21,11 @@ func NewProductUsecase(productRepository product.IRepositoryProduct, fileReposit
 }
 
 func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreateProductRequest) (res product.CreateProdutResponse, err error) {
+	// Validate file exists before creating product
+	fileData, err := u.fileRepository.GetFileByID(ctx, req.FileID)
+	if err != nil {
+		return res, fmt.Errorf("file not found: %s", req.FileID)
+	}
 
 	createProduct := entity.Product{
 		AuthID:       req.AuthId,
@@ -33,11 +38,6 @@ func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreatePro
 	}
 
 	savedProduct, err := u.productRepository.CreateProduct(ctx, createProduct)
-	if err != nil {
-		return res, err
-	}
-
-	fileData, err := u.fileRepository.GetFileByID(ctx, req.FileID)
 	if err != nil {
 		return res, err
 	}
@@ -58,7 +58,17 @@ func (u ProductUsecase) CreateProduct(ctx context.Context, req product.CreatePro
 }
 
 func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdateProductRequest) (res product.UpdateProdutResponse, err error) {
-	prdId, _ := stringToInt(req.ProductId)
+	prdId, err := stringToInt(req.ProductId)
+	if err != nil {
+		return res, fmt.Errorf("invalid productId: %s", req.ProductId)
+	}
+
+	// Validate file exists before updating product
+	fileData, err := u.fileRepository.GetFileByID(ctx, req.FileID)
+	if err != nil {
+		return res, fmt.Errorf("file not found: %s", req.FileID)
+	}
+
 	updateProductReq := entity.Product{
 		ID:           prdId,
 		AuthID:       req.AuthId,
@@ -71,11 +81,6 @@ func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdatePro
 	}
 
 	updateProduct, err := u.productRepository.UpdateProduct(ctx, updateProductReq)
-	if err != nil {
-		return res, err
-	}
-
-	fileData, err := u.fileRepository.GetFileByID(ctx, req.FileID)
 	if err != nil {
 		return res, err
 	}
@@ -96,7 +101,10 @@ func (u ProductUsecase) UpdateProduct(ctx context.Context, req product.UpdatePro
 }
 
 func (u ProductUsecase) DeleteProduct(ctx context.Context, authId, productId string) (err error) {
-	prdId, _ := stringToInt(productId)
+	prdId, err := stringToInt(productId)
+	if err != nil {
+		return fmt.Errorf("invalid productId: %s", productId)
+	}
 	err = u.productRepository.DeleteProduct(ctx, authId, prdId)
 	if err != nil {
 		return err
@@ -104,32 +112,63 @@ func (u ProductUsecase) DeleteProduct(ctx context.Context, authId, productId str
 	return nil
 }
 
-func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductListRequest) (res []product.ProdutListResponse, err error) {
-	res = []product.ProdutListResponse{}
-	products, err := u.productRepository.GetProducts(ctx, req)
+func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductListRequest) (res product.ProductListPaginatedResponse, err error) {
+	res = product.ProductListPaginatedResponse{
+		Data:   []product.ProductResponse{},
+		Limit:  req.Limit,
+		Offset: req.Offset,
+	}
+	products, total, err := u.productRepository.GetProducts(ctx, req)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound || len(products) == 0 {
+		if err == gorm.ErrRecordNotFound {
 			return res, nil
 		}
 		return res, err
 	}
 
-	prd := product.ProdutListResponse{}
-	for _, product := range products {
-		prd.ProductId = intToString(product.ID)
-		prd.Category = product.TypeCategory
-		prd.Name = product.Name
-		prd.Qty = product.Qty
-		prd.Price = product.Price
-		prd.SKU = product.Sku
-		prd.FileID = product.File.ID
-		prd.FileUri = product.File.FileUri
-		prd.FileThumbnailUri = product.File.FileThumbnailUri
-		prd.CreatedAt = product.CreatedAt.Format(time.RFC3339)
-		prd.UpdatedAt = product.UpdatedAt.Format(time.RFC3339)
-
-		res = append(res, prd)
+	res.Total = total
+	for _, p := range products {
+		prd := product.ProductResponse{
+			ProductId:        intToString(p.ID),
+			Category:         p.TypeCategory,
+			Name:             p.Name,
+			Qty:              p.Qty,
+			Price:            p.Price,
+			SKU:              p.Sku,
+			FileID:           p.File.ID,
+			FileUri:          p.File.FileUri,
+			FileThumbnailUri: p.File.FileThumbnailUri,
+			CreatedAt:        p.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:        p.UpdatedAt.Format(time.RFC3339),
+		}
+		res.Data = append(res.Data, prd)
 	}
+
+	return
+}
+
+func (u ProductUsecase) GetProductByID(ctx context.Context, productId string) (res product.ProductResponse, err error) {
+	prdId, err := stringToInt(productId)
+	if err != nil {
+		return res, fmt.Errorf("invalid productId: %s", productId)
+	}
+
+	p, err := u.productRepository.GetProductByID(ctx, prdId)
+	if err != nil {
+		return res, err
+	}
+
+	res.ProductId = intToString(p.ID)
+	res.Category = p.TypeCategory
+	res.Name = p.Name
+	res.Qty = p.Qty
+	res.Price = p.Price
+	res.SKU = p.Sku
+	res.FileID = p.File.ID
+	res.FileUri = p.File.FileUri
+	res.FileThumbnailUri = p.File.FileThumbnailUri
+	res.CreatedAt = p.CreatedAt.Format(time.RFC3339)
+	res.UpdatedAt = p.UpdatedAt.Format(time.RFC3339)
 
 	return
 }

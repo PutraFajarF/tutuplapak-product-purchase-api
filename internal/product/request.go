@@ -30,6 +30,7 @@ type ProductListRequest struct {
 	Offset       int    `query:"offset"`
 	ProductId    string `query:"productId"`
 	Sku          string `query:"sku"`
+	Name         string `query:"name"`
 	Category     string `query:"category"`
 	SortBy       string `query:"sortBy"`
 	ProductIdInt int    `query:"-"`

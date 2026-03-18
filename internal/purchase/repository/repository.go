@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/entity"
 	"github.com/PutraFajarF/tutuplapak-product-purchase-api/internal/purchase"
@@ -62,8 +63,12 @@ func (r *purchaseRepository) SetPurchasePaidWithProofsAndDecrement(ctx context.C
 			return err
 		}
 		for _, item := range items {
-			if err := tx.Exec("UPDATE products SET qty = qty - ?, updated_at = NOW() WHERE id = ?", item.BuyQty, item.ProductID).Error; err != nil {
-				return err
+			result := tx.Exec("UPDATE products SET qty = qty - ?, updated_at = NOW() WHERE id = ? AND qty >= ?", item.BuyQty, item.ProductID, item.BuyQty)
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected == 0 {
+				return fmt.Errorf("product %d qty not enough", item.ProductID)
 			}
 		}
 		if err := tx.Exec("UPDATE purchases SET status = 'PAID', updated_at = NOW() WHERE id = ?", id).Error; err != nil {

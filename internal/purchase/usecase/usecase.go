@@ -48,6 +48,11 @@ func (uc *purchaseUsecase) CreatePurchase(ctx context.Context, req purchase.Crea
 		return nil, err
 	}
 
+	// Validate all requested product IDs exist
+	if len(products) != len(uniqueIDs) {
+		return nil, fmt.Errorf("some productIds do not exist")
+	}
+
 	// Build snapshot items
 	snapshotItems := make([]entity.PurchaseItem, 0, len(products))
 	var grandTotal int64
@@ -64,7 +69,7 @@ func (uc *purchaseUsecase) CreatePurchase(ctx context.Context, req purchase.Crea
 			SellerID:         product.AuthID,
 			Name:             product.Name,
 			CategoryCode:     product.TypeCategory,
-			Price:            int64(product.ID),
+			Price:            int64(product.Price),
 			SKU:              product.Sku,
 			FileID:           sql.NullString{String: product.FileId, Valid: product.FileId != ""},
 			FileURI:          sql.NullString{String: product.File.FileUri, Valid: product.File.FileUri != ""},
@@ -140,6 +145,42 @@ func (uc *purchaseUsecase) CreatePurchase(ctx context.Context, req purchase.Crea
 		PurchasedItems: responseItems,
 		TotalPrice:     grandTotal,
 		PaymentDetails: paymentDetails,
+	}, nil
+}
+
+func (uc *purchaseUsecase) GetPurchaseByID(ctx context.Context, purchaseID int64) (*purchase.GetPurchaseResp, error) {
+	purchaseRecord, purchaseItems, err := uc.purchaseRepo.GetPurchaseByIDWithItems(ctx, purchaseID)
+	if err != nil {
+		return nil, err
+	}
+
+	responseItems := make([]purchase.ProductSnapshotResp, 0, len(purchaseItems))
+	for _, item := range purchaseItems {
+		responseItems = append(responseItems, purchase.ProductSnapshotResp{
+			ProductID:        strconv.FormatInt(item.ProductID, 10),
+			Name:             item.Name,
+			Category:         item.CategoryCode,
+			Qty:              item.BuyQty,
+			Price:            item.Price,
+			SKU:              item.SKU,
+			FileID:           helper.NullString(item.FileID),
+			FileURI:          helper.NullString(item.FileURI),
+			FileThumbnailURI: helper.NullString(item.FileThumbnailURI),
+			CreatedAt:        item.ProductCreatedAt,
+			UpdatedAt:        item.ProductUpdatedAt,
+		})
+	}
+
+	return &purchase.GetPurchaseResp{
+		PurchaseID:          strconv.FormatInt(purchaseRecord.ID, 10),
+		SenderName:          purchaseRecord.SenderName,
+		SenderContactType:   purchaseRecord.SenderContactType,
+		SenderContactDetail: purchaseRecord.SenderContactDetail,
+		PurchasedItems:      responseItems,
+		TotalPrice:          purchaseRecord.TotalPrice,
+		Status:              purchaseRecord.Status,
+		CreatedAt:           purchaseRecord.CreatedAt,
+		UpdatedAt:           purchaseRecord.UpdatedAt,
 	}, nil
 }
 

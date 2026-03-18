@@ -65,7 +65,7 @@ func (r ProductRepository) DeleteProduct(ctx context.Context, authId string, pro
 	return nil
 }
 
-func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductListRequest) (res []entity.Product, err error) {
+func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductListRequest) (res []entity.Product, total int64, err error) {
 	query := r.db.Model(&entity.Product{}).Preload("File")
 
 	if req.ProductIdInt != 0 {
@@ -76,8 +76,17 @@ func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductL
 		query = query.Where("sku = ?", req.Sku)
 	}
 
+	if req.Name != "" {
+		query = query.Where("name ILIKE ?", "%"+req.Name+"%")
+	}
+
 	if req.Category != "" {
 		query = query.Where("type = ?", req.Category)
+	}
+
+	// Count total before pagination
+	if err = query.Count(&total).Error; err != nil {
+		return res, 0, err
 	}
 
 	switch req.SortBy {
@@ -93,8 +102,20 @@ func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductL
 
 	err = query.Limit(req.Limit).Offset(req.Offset).Find(&res).Error
 	if err != nil {
-		return res, err
+		return res, 0, err
 	}
 
 	return
+}
+
+func (r ProductRepository) GetProductByID(ctx context.Context, productId int) (entity.Product, error) {
+	var res entity.Product
+	err := r.db.WithContext(ctx).Model(&entity.Product{}).Preload("File").Where("id = ?", productId).First(&res).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return entity.Product{}, fmt.Errorf("product not found")
+		}
+		return entity.Product{}, err
+	}
+	return res, nil
 }

@@ -29,3 +29,15 @@ type CreatePurchaseResp struct {
 	TotalPrice     int64                 `json:"totalPrice"`
 	PaymentDetails []PaymentDetailResp   `json:"paymentDetails"`
 }
+
+type GetPurchaseResp struct {
+	PurchaseID          string                `json:"purchaseId"`
+	SenderName          string                `json:"senderName"`
+	SenderContactType   string                `json:"senderContactType"`
+	SenderContactDetail string                `json:"senderContactDetail"`
+	PurchasedItems      []ProductSnapshotResp `json:"purchasedItems"`
+	TotalPrice          int64                 `json:"totalPrice"`
+	Status              string                `json:"status"`
+	CreatedAt           time.Time             `json:"createdAt"`
+	UpdatedAt           time.Time             `json:"updatedAt"`
+}
