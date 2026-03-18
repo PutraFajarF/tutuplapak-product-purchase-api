@@ -125,6 +125,9 @@ func (d ProductHandler) ProductList(c echo.Context) error {
 
 	res, err := d.usecaseProduct.GetProducts(c.Request().Context(), req)
 	if err != nil {
+		if strings.Contains(err.Error(), "invalid cursor") {
+			return c.JSON(http.StatusBadRequest, map[string]any{"message": "Invalid cursor"})
+		}
 		return c.JSON(http.StatusInternalServerError, map[string]any{"message": "Failed to get product list"})
 	}
 

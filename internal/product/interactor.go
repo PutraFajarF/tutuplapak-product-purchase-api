@@ -17,7 +17,7 @@ type IUsecaseProduct interface {
 type IRepositoryProduct interface {
 	CreateProduct(ctx context.Context, req entity.Product) (res entity.Product, err error)
 	UpdateProduct(ctx context.Context, req entity.Product) (res entity.Product, err error)
-	GetProducts(ctx context.Context, req ProductListRequest) (res []entity.Product, total int64, err error)
+	GetProducts(ctx context.Context, req ProductListRequest, cursor *CursorData) (res []entity.Product, err error)
 	GetProductByID(ctx context.Context, productId int) (res entity.Product, err error)
 	DeleteProduct(ctx context.Context, authId string, productId int) (err error)
 }

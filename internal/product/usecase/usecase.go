@@ -115,10 +115,21 @@ func (u ProductUsecase) DeleteProduct(ctx context.Context, authId, productId str
 func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductListRequest) (res product.ProductListPaginatedResponse, err error) {
 	res = product.ProductListPaginatedResponse{
 		Data:   []product.ProductResponse{},
+		Cursor: req.Cursor,
 		Limit:  req.Limit,
-		Offset: req.Offset,
 	}
-	products, total, err := u.productRepository.GetProducts(ctx, req)
+
+	// Decode cursor if provided
+	var cursor *product.CursorData
+	if req.Cursor != "" {
+		decoded, err := product.DecodeCursor(req.Cursor)
+		if err != nil {
+			return res, fmt.Errorf("invalid cursor")
+		}
+		cursor = &decoded
+	}
+
+	products, err := u.productRepository.GetProducts(ctx, req, cursor)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return res, nil
@@ -126,7 +137,6 @@ func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductList
 		return res, err
 	}
 
-	res.Total = total
 	for _, p := range products {
 		prd := product.ProductResponse{
 			ProductId:        intToString(p.ID),
@@ -142,6 +152,17 @@ func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductList
 			UpdatedAt:        p.UpdatedAt.Format(time.RFC3339),
 		}
 		res.Data = append(res.Data, prd)
+	}
+
+	// Build nextCursor from the last item if we got a full page
+	if len(products) == req.Limit {
+		last := products[len(products)-1]
+		nextCursor := product.CursorData{
+			ID:        last.ID,
+			CreatedAt: last.CreatedAt,
+			Price:     last.Price,
+		}
+		res.NextCursor = product.EncodeCursor(nextCursor)
 	}
 
 	return

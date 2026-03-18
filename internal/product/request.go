@@ -1,8 +1,12 @@
 package product
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type CreateProductRequest struct {
@@ -27,7 +31,7 @@ type UpdateProductRequest struct {
 
 type ProductListRequest struct {
 	Limit        int    `query:"limit"`
-	Offset       int    `query:"offset"`
+	Cursor       string `query:"cursor"`
 	ProductId    string `query:"productId"`
 	Sku          string `query:"sku"`
 	Name         string `query:"name"`
@@ -36,14 +40,42 @@ type ProductListRequest struct {
 	ProductIdInt int    `query:"-"`
 }
 
+// CursorData holds the decoded cursor position for keyset pagination.
+// ID is always the tiebreaker. CreatedAt/Price are set based on sortBy.
+type CursorData struct {
+	ID        int       `json:"id"`
+	CreatedAt time.Time `json:"ca,omitempty"`
+	Price     int       `json:"p,omitempty"`
+}
+
+func EncodeCursor(c CursorData) string {
+	b, _ := json.Marshal(c)
+	return base64.URLEncoding.EncodeToString(b)
+}
+
+func DecodeCursor(encoded string) (CursorData, error) {
+	var c CursorData
+	b, err := base64.URLEncoding.DecodeString(encoded)
+	if err != nil {
+		return c, fmt.Errorf("invalid cursor")
+	}
+	if err := json.Unmarshal(b, &c); err != nil {
+		return c, fmt.Errorf("invalid cursor")
+	}
+	if c.ID <= 0 {
+		return c, fmt.Errorf("invalid cursor: missing id")
+	}
+	return c, nil
+}
+
 func NewProductListRequest(req ProductListRequest) (res ProductListRequest) {
 	res = req
 
 	if res.Limit <= 0 {
 		res.Limit = 5
 	}
-	if res.Offset < 0 {
-		res.Offset = 0
+	if res.Limit > 100 {
+		res.Limit = 100
 	}
 
 	productIdInt, err := strconv.Atoi(res.ProductId)

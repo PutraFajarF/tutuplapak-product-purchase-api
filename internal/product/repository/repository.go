@@ -65,7 +65,7 @@ func (r ProductRepository) DeleteProduct(ctx context.Context, authId string, pro
 	return nil
 }
 
-func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductListRequest) (res []entity.Product, total int64, err error) {
+func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductListRequest, cursor *product.CursorData) (res []entity.Product, err error) {
 	query := r.db.Model(&entity.Product{}).Preload("File")
 
 	if req.ProductIdInt != 0 {
@@ -84,25 +84,41 @@ func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductL
 		query = query.Where("type = ?", req.Category)
 	}
 
-	// Count total before pagination
-	if err = query.Count(&total).Error; err != nil {
-		return res, 0, err
-	}
-
+	// Keyset (cursor) pagination: WHERE (sort_col, id) >/< (cursor_val, cursor_id)
+	// For DESC sorts we want "less than"; for ASC sorts we want "greater than".
+	// ID is always the tiebreaker to guarantee deterministic ordering.
 	switch req.SortBy {
 	case "newest":
-		query = query.Order("created_at DESC").Order("updated_at DESC")
+		if cursor != nil {
+			query = query.Where("(created_at, id) < (?, ?)", cursor.CreatedAt, cursor.ID)
+		}
+		query = query.Order("created_at DESC, id DESC")
 	case "oldest":
-		query = query.Order("created_at ASC").Order("updated_at ASC")
+		if cursor != nil {
+			query = query.Where("(created_at, id) > (?, ?)", cursor.CreatedAt, cursor.ID)
+		}
+		query = query.Order("created_at ASC, id ASC")
 	case "cheapest":
-		query = query.Order("price ASC")
+		if cursor != nil {
+			query = query.Where("(price, id) > (?, ?)", cursor.Price, cursor.ID)
+		}
+		query = query.Order("price ASC, id ASC")
 	case "expensive":
-		query = query.Order("price DESC")
+		if cursor != nil {
+			query = query.Where("(price, id) < (?, ?)", cursor.Price, cursor.ID)
+		}
+		query = query.Order("price DESC, id DESC")
+	default:
+		// Default: ascending by ID
+		if cursor != nil {
+			query = query.Where("id > ?", cursor.ID)
+		}
+		query = query.Order("id ASC")
 	}
 
-	err = query.Limit(req.Limit).Offset(req.Offset).Find(&res).Error
+	err = query.Limit(req.Limit).Find(&res).Error
 	if err != nil {
-		return res, 0, err
+		return res, err
 	}
 
 	return

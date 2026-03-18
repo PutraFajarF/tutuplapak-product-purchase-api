@@ -20,8 +20,8 @@ type UpdateProdutResponse = ProductResponse
 type ProdutListResponse = ProductResponse
 
 type ProductListPaginatedResponse struct {
-	Data   []ProductResponse `json:"data"`
-	Total  int64             `json:"total"`
-	Limit  int               `json:"limit"`
-	Offset int               `json:"offset"`
+	Data       []ProductResponse `json:"data"`
+	Cursor     string            `json:"cursor,omitempty"`
+	NextCursor string            `json:"nextCursor,omitempty"`
+	Limit      int               `json:"limit"`
 }
