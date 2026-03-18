@@ -8,6 +8,7 @@ import (
 
 type IPurchaseUsecase interface {
 	CreatePurchase(ctx context.Context, req CreatePurchaseReq) (*CreatePurchaseResp, error)
+	GetPurchaseByID(ctx context.Context, purchaseID int64) (*GetPurchaseResp, error)
 	UploadPurchaseProofs(ctx context.Context, purchaseID int64, req UploadProofReq) error
 }
 

@@ -90,3 +90,20 @@ func (h *PurchaseDelivery) UploadProof(c echo.Context) error {
 	}
 	return c.NoContent(http.StatusCreated)
 }
+
+func (h *PurchaseDelivery) GetPurchase(c echo.Context) error {
+	sid := c.Param("purchaseId")
+	id, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"message": "invalid purchaseId"})
+	}
+
+	resp, err := h.uc.GetPurchaseByID(c.Request().Context(), id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) || strings.Contains(err.Error(), "not found") {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "purchase not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]any{"message": err.Error()})
+	}
+	return c.JSON(http.StatusOK, resp)
+}

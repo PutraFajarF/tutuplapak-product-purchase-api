@@ -65,7 +65,7 @@ func (r ProductRepository) DeleteProduct(ctx context.Context, authId string, pro
 	return nil
 }
 
-func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductListRequest) (res []entity.Product, err error) {
+func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductListRequest, cursor *product.CursorData) (res []entity.Product, err error) {
 	query := r.db.Model(&entity.Product{}).Preload("File")
 
 	if req.ProductIdInt != 0 {
@@ -76,25 +76,103 @@ func (r ProductRepository) GetProducts(ctx context.Context, req product.ProductL
 		query = query.Where("sku = ?", req.Sku)
 	}
 
+	if req.Name != "" {
+		query = query.Where("name ILIKE ?", "%"+req.Name+"%")
+	}
+
 	if req.Category != "" {
 		query = query.Where("type = ?", req.Category)
 	}
 
+	backward := req.Direction == "prev"
+
+	// Keyset (cursor) pagination with bidirectional support.
+	// Forward  ("next"): use the natural comparison + order.
+	// Backward ("prev"): flip comparison AND order, results reversed in usecase.
 	switch req.SortBy {
-	case "newest":
-		query = query.Order("created_at DESC").Order("updated_at DESC")
-	case "oldest":
-		query = query.Order("created_at ASC").Order("updated_at ASC")
-	case "cheapest":
-		query = query.Order("price ASC")
-	case "expensive":
-		query = query.Order("price DESC")
+	case "newest": // natural: created_at DESC, id DESC
+		if cursor != nil {
+			if backward {
+				query = query.Where("(created_at, id) > (?, ?)", cursor.CreatedAt, cursor.ID)
+			} else {
+				query = query.Where("(created_at, id) < (?, ?)", cursor.CreatedAt, cursor.ID)
+			}
+		}
+		if backward {
+			query = query.Order("created_at ASC, id ASC")
+		} else {
+			query = query.Order("created_at DESC, id DESC")
+		}
+	case "oldest": // natural: created_at ASC, id ASC
+		if cursor != nil {
+			if backward {
+				query = query.Where("(created_at, id) < (?, ?)", cursor.CreatedAt, cursor.ID)
+			} else {
+				query = query.Where("(created_at, id) > (?, ?)", cursor.CreatedAt, cursor.ID)
+			}
+		}
+		if backward {
+			query = query.Order("created_at DESC, id DESC")
+		} else {
+			query = query.Order("created_at ASC, id ASC")
+		}
+	case "cheapest": // natural: price ASC, id ASC
+		if cursor != nil {
+			if backward {
+				query = query.Where("(price, id) < (?, ?)", cursor.Price, cursor.ID)
+			} else {
+				query = query.Where("(price, id) > (?, ?)", cursor.Price, cursor.ID)
+			}
+		}
+		if backward {
+			query = query.Order("price DESC, id DESC")
+		} else {
+			query = query.Order("price ASC, id ASC")
+		}
+	case "expensive": // natural: price DESC, id DESC
+		if cursor != nil {
+			if backward {
+				query = query.Where("(price, id) > (?, ?)", cursor.Price, cursor.ID)
+			} else {
+				query = query.Where("(price, id) < (?, ?)", cursor.Price, cursor.ID)
+			}
+		}
+		if backward {
+			query = query.Order("price ASC, id ASC")
+		} else {
+			query = query.Order("price DESC, id DESC")
+		}
+	default: // natural: id ASC
+		if cursor != nil {
+			if backward {
+				query = query.Where("id < ?", cursor.ID)
+			} else {
+				query = query.Where("id > ?", cursor.ID)
+			}
+		}
+		if backward {
+			query = query.Order("id DESC")
+		} else {
+			query = query.Order("id ASC")
+		}
 	}
 
-	err = query.Limit(req.Limit).Offset(req.Offset).Find(&res).Error
+	err = query.Limit(req.Limit).Find(&res).Error
 	if err != nil {
 		return res, err
 	}
 
 	return
+}
+
+func (r ProductRepository) GetProductByID(ctx context.Context, productId int) (entity.Product, error) {
+	var res entity.Product
+	err := r.db.WithContext(ctx).Model(&entity.Product{}).Preload("File").Where("id = ?", productId).First(&res).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return entity.Product{}, fmt.Errorf("product not found")
+		}
+		return entity.Product{}, err
+	}
+	return res, nil
 }
