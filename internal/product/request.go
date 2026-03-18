@@ -32,6 +32,7 @@ type UpdateProductRequest struct {
 type ProductListRequest struct {
 	Limit        int    `query:"limit"`
 	Cursor       string `query:"cursor"`
+	Direction    string `query:"direction"`
 	ProductId    string `query:"productId"`
 	Sku          string `query:"sku"`
 	Name         string `query:"name"`
@@ -96,6 +97,13 @@ func NewProductListRequest(req ProductListRequest) (res ProductListRequest) {
 		cat != "Clothes" && cat != "Furniture" &&
 		cat != "Tools" {
 		res.Category = ""
+	}
+
+	dir := strings.ToLower(res.Direction)
+	if dir != "prev" {
+		res.Direction = "next"
+	} else {
+		res.Direction = "prev"
 	}
 
 	return

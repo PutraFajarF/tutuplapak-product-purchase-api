@@ -21,7 +21,7 @@ type ProdutListResponse = ProductResponse
 
 type ProductListPaginatedResponse struct {
 	Data       []ProductResponse `json:"data"`
-	Cursor     string            `json:"cursor,omitempty"`
+	PrevCursor string            `json:"prevCursor,omitempty"`
 	NextCursor string            `json:"nextCursor,omitempty"`
 	Limit      int               `json:"limit"`
 }

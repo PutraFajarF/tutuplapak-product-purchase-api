@@ -114,9 +114,8 @@ func (u ProductUsecase) DeleteProduct(ctx context.Context, authId, productId str
 
 func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductListRequest) (res product.ProductListPaginatedResponse, err error) {
 	res = product.ProductListPaginatedResponse{
-		Data:   []product.ProductResponse{},
-		Cursor: req.Cursor,
-		Limit:  req.Limit,
+		Data:  []product.ProductResponse{},
+		Limit: req.Limit,
 	}
 
 	// Decode cursor if provided
@@ -137,6 +136,14 @@ func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductList
 		return res, err
 	}
 
+	// For backward ("prev") direction the DB returns items in reversed order,
+	// so we reverse them back to the natural display order.
+	if req.Direction == "prev" {
+		for i, j := 0, len(products)-1; i < j; i, j = i+1, j-1 {
+			products[i], products[j] = products[j], products[i]
+		}
+	}
+
 	for _, p := range products {
 		prd := product.ProductResponse{
 			ProductId:        intToString(p.ID),
@@ -154,15 +161,41 @@ func (u ProductUsecase) GetProducts(ctx context.Context, req product.ProductList
 		res.Data = append(res.Data, prd)
 	}
 
-	// Build nextCursor from the last item if we got a full page
-	if len(products) == req.Limit {
-		last := products[len(products)-1]
-		nextCursor := product.CursorData{
-			ID:        last.ID,
-			CreatedAt: last.CreatedAt,
-			Price:     last.Price,
+	if len(products) == 0 {
+		return res, nil
+	}
+
+	first := products[0]
+	last := products[len(products)-1]
+
+	firstCursor := product.EncodeCursor(product.CursorData{
+		ID:        first.ID,
+		CreatedAt: first.CreatedAt,
+		Price:     first.Price,
+	})
+	lastCursor := product.EncodeCursor(product.CursorData{
+		ID:        last.ID,
+		CreatedAt: last.CreatedAt,
+		Price:     last.Price,
+	})
+
+	switch req.Direction {
+	case "prev":
+		// Going backward: there's always a next page (we came from there).
+		res.NextCursor = lastCursor
+		// There's a previous page only if we got a full page of results.
+		if len(products) == req.Limit {
+			res.PrevCursor = firstCursor
 		}
-		res.NextCursor = product.EncodeCursor(nextCursor)
+	default: // "next" or first page
+		// There's a next page only if we got a full page of results.
+		if len(products) == req.Limit {
+			res.NextCursor = lastCursor
+		}
+		// There's a previous page only if a cursor was provided (not first page).
+		if cursor != nil {
+			res.PrevCursor = firstCursor
+		}
 	}
 
 	return
